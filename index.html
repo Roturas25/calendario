@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mis Turnos</title>
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mis Turnos">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Spline+Sans:wght@400;500;600&display=swap');
+html, body { background: #0a0a0a; margin: 0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo } = React;
+
+// ---- Persistencia ----
+const KEY_TPL = "turnos:plantillas:v2";
+const KEY_ASG = "turnos:asignaciones:v2";
+
+function loadJSON(key, fallback) {
+  try {
+    const s = localStorage.getItem(key);
+    if (s) return JSON.parse(s);
+  } catch (e) {}
+  return fallback;
+}
+function saveJSON(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+}
+
+// kind: "work" | "vacation"
+const DEFAULT_TEMPLATES = [
+  { id: "m",   name: "Mañana",     start: "06:45", end: "14:45", color: "#facc15", kind: "work" },
+  { id: "t",   name: "Tarde",      start: "14:45", end: "22:45", color: "#22c55e", kind: "work" },
+  { id: "n",   name: "Noche",      start: "22:45", end: "06:45", color: "#3b82f6", kind: "work" },
+  { id: "d12", name: "12h Día",    start: "06:45", end: "18:45", color: "#fb923c", kind: "work" },
+  { id: "n12", name: "12h Noche",  start: "18:45", end: "06:45", color: "#6366f1", kind: "work" },
+  { id: "vac", name: "Vacaciones", start: "",      end: "",      color: "#f472b6", kind: "vacation" },
+];
+
+const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const DIAS = ["L","M","X","J","V","S","D"];
+
+const pad = (n) => String(n).padStart(2, "0");
+const ymd = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
+const uid = () => "t" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+function durationHours(t) {
+  if (!t || t.kind !== "work" || !t.start || !t.end) return 0;
+  const [sh, sm] = t.start.split(":").map(Number);
+  const [eh, em] = t.end.split(":").map(Number);
+  let mins = (eh * 60 + em) - (sh * 60 + sm);
+  if (mins <= 0) mins += 24 * 60; // turno que cruza medianoche
+  return mins / 60;
+}
+
+const fmtHours = (h) => (Number.isInteger(h) ? h : h.toFixed(1));
+
+// ---- Imagen PNG del mes ----
+function hexToRgb(hex) { const h = hex.replace("#", ""); return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]; }
+function isLight(hex) { try { const [r,g,b] = hexToRgb(hex); return (0.299*r + 0.587*g + 0.114*b) > 155; } catch (e) { return false; } }
+function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+function drawMonthImage(year, month, assignments, templates) {
+  const byId = Object.fromEntries(templates.map((t) => [t.id, t]));
+  const monthPrefix = `${year}-${pad(month + 1)}-`;
+  const S = 3, W = 640, PAD = 30;
+  const gridW = W - PAD * 2;
+  const cellW = gridW / 7;
+  const cellH = cellW;
+  const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const rows = Math.ceil((firstWeekday + daysInMonth) / 7);
+  const headerH = 100, weekdayH = 36, gap = 24;
+  const used = templates.filter((t) => Object.keys(assignments).some((k) => k.startsWith(monthPrefix) && assignments[k] === t.id));
+  const legendLineH = 36;
+  const legendH = 30 + Math.max(used.length, 1) * legendLineH;
+  const footerH = 30;
+  const gridH = rows * cellH;
+  const H = Math.ceil(headerH + weekdayH + gridH + gap + legendH + footerH);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = W * S; canvas.height = H * S;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(S, S);
+
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, W, H);
+
+  // Cabecera
+  ctx.textAlign = "left"; ctx.fillStyle = "#0f172a"; ctx.font = "700 34px sans-serif";
+  ctx.fillText(MESES[month] + " " + year, PAD, 54);
+  const workCount = Object.keys(assignments).filter((k) => k.startsWith(monthPrefix) && byId[assignments[k]]?.kind === "work").length;
+  ctx.fillStyle = "#64748b"; ctx.font = "500 16px sans-serif";
+  ctx.fillText(workCount + " turnos de trabajo este mes", PAD, 82);
+
+  // Días de la semana
+  ctx.textAlign = "center"; ctx.fillStyle = "#94a3b8"; ctx.font = "600 14px sans-serif";
+  const wd = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+  for (let c = 0; c < 7; c++) ctx.fillText(wd[c], PAD + c*cellW + cellW/2, headerH + 22);
+
+  // Celdas
+  const gridTop = headerH + weekdayH;
+  let day = 1;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < 7; c++) {
+      const idx = r*7 + c;
+      if (idx < firstWeekday || day > daysInMonth) continue;
+      const x = PAD + c*cellW, y = gridTop + r*cellH, m = 3;
+      const t = byId[assignments[ymd(year, month, day)]];
+      roundRect(ctx, x+m, y+m, cellW-2*m, cellH-2*m, 11);
+      if (t) {
+        ctx.fillStyle = t.color; ctx.fill();
+        ctx.fillStyle = isLight(t.color) ? "#1e293b" : "#ffffff";
+        ctx.textAlign = "left"; ctx.font = "700 18px sans-serif";
+        ctx.fillText(String(day), x+m+9, y+m+26);
+        ctx.textAlign = "center"; ctx.font = "600 11px sans-serif";
+        const label = t.name.length > 10 ? t.name.slice(0, 10) : t.name;
+        ctx.fillText(label, x + cellW/2, y + cellH - 14);
+      } else {
+        ctx.fillStyle = "#f1f5f9"; ctx.fill();
+        ctx.strokeStyle = "#e2e8f0"; ctx.lineWidth = 1; ctx.stroke();
+        ctx.fillStyle = "#94a3b8"; ctx.textAlign = "left"; ctx.font = "600 18px sans-serif";
+        ctx.fillText(String(day), x+m+9, y+m+26);
+      }
+      day++;
+    }
+  }
+
+  // Leyenda
+  let ly = gridTop + gridH + gap + 22;
+  ctx.textAlign = "left"; ctx.fillStyle = "#0f172a"; ctx.font = "700 18px sans-serif";
+  ctx.fillText("Leyenda y horarios", PAD, ly);
+  if (used.length === 0) {
+    ctx.fillStyle = "#94a3b8"; ctx.font = "500 14px sans-serif";
+    ctx.fillText("Sin turnos asignados este mes.", PAD, ly + 28);
+  }
+  used.forEach((t) => {
+    ly += legendLineH;
+    roundRect(ctx, PAD, ly - 14, 18, 18, 5); ctx.fillStyle = t.color; ctx.fill();
+    ctx.fillStyle = "#0f172a"; ctx.font = "600 15px sans-serif";
+    ctx.fillText(t.name, PAD + 28, ly);
+    ctx.fillStyle = "#475569"; ctx.font = "500 15px sans-serif";
+    const info = t.kind === "work" && t.start && t.end ? `${t.start} – ${t.end}   (${fmtHours(durationHours(t))} h)` : "día completo";
+    ctx.fillText(info, PAD + 185, ly);
+  });
+
+  // Pie
+  ctx.fillStyle = "#cbd5e1"; ctx.font = "500 12px sans-serif";
+  ctx.fillText("Los días en blanco son libres.", PAD, H - 16);
+
+  return canvas;
+}
+
+// ---- .ics ----
+function buildICS(assignments, templates) {
+  const byId = Object.fromEntries(templates.map((t) => [t.id, t]));
+  const now = new Date();
+  const stamp = now.getUTCFullYear() + pad(now.getUTCMonth() + 1) + pad(now.getUTCDate()) +
+    "T" + pad(now.getUTCHours()) + pad(now.getUTCMinutes()) + pad(now.getUTCSeconds()) + "Z";
+
+  const lines = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Turnos//ES","CALSCALE:GREGORIAN","METHOD:PUBLISH"];
+  let count = 0;
+
+  Object.keys(assignments).sort().forEach((date) => {
+    const t = byId[assignments[date]];
+    if (!t) return;
+
+    if (t.kind === "vacation") {
+      const [Y, M, D] = date.split("-").map(Number);
+      const nd = new Date(Y, M - 1, D + 1);
+      const next = ymd(nd.getFullYear(), nd.getMonth(), nd.getDate());
+      lines.push(
+        "BEGIN:VEVENT","UID:" + uid() + "@turnos","DTSTAMP:" + stamp,
+        "DTSTART;VALUE=DATE:" + date.replaceAll("-", ""),
+        "DTEND;VALUE=DATE:" + next.replaceAll("-", ""),
+        "SUMMARY:Vacaciones","TRANSP:TRANSPARENT","END:VEVENT"
+      );
+      count++;
+      return;
+    }
+    if (t.kind !== "work" || !t.start || !t.end) return;
+
+    const [sh, sm] = t.start.split(":");
+    const [eh, em] = t.end.split(":");
+    const dtStart = date.replaceAll("-", "") + "T" + sh + sm + "00";
+    let endDate = date;
+    if (t.end <= t.start) {
+      const [Y, M, D] = date.split("-").map(Number);
+      const nd = new Date(Y, M - 1, D + 1);
+      endDate = ymd(nd.getFullYear(), nd.getMonth(), nd.getDate());
+    }
+    const dtEnd = endDate.replaceAll("-", "") + "T" + eh + em + "00";
+    lines.push(
+      "BEGIN:VEVENT","UID:" + uid() + "@turnos","DTSTAMP:" + stamp,
+      "DTSTART:" + dtStart,"DTEND:" + dtEnd,
+      "SUMMARY:Trabajo — " + t.name,
+      "DESCRIPTION:Turno de " + t.name + " (" + t.start + "–" + t.end + ")",
+      "BEGIN:VALARM","ACTION:DISPLAY",
+      "DESCRIPTION:Entras a trabajar en 30 minutos (" + t.name + ")",
+      "TRIGGER:-PT30M","END:VALARM","END:VEVENT"
+    );
+    count++;
+  });
+
+  lines.push("END:VCALENDAR");
+  return { ics: lines.join("\r\n"), count };
+}
+
+function App() {
+  const today = new Date();
+  const [year, setYear] = useState(today.getFullYear());
+  const [month, setMonth] = useState(today.getMonth());
+  const [templates, setTemplates] = useState(DEFAULT_TEMPLATES);
+  const [assignments, setAssignments] = useState({});
+  const [selected, setSelected] = useState("m");
+  const [loaded, setLoaded] = useState(false);
+  const [showTpl, setShowTpl] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [toast, setToast] = useState("");
+  const [imgPreview, setImgPreview] = useState("");
+
+  useEffect(() => {
+    setTemplates(loadJSON(KEY_TPL, DEFAULT_TEMPLATES));
+    setAssignments(loadJSON(KEY_ASG, {}));
+    setLoaded(true);
+  }, []);
+  useEffect(() => { if (loaded) saveJSON(KEY_TPL, templates); }, [templates, loaded]);
+  useEffect(() => { if (loaded) saveJSON(KEY_ASG, assignments); }, [assignments, loaded]);
+
+  const byId = useMemo(() => Object.fromEntries(templates.map((t) => [t.id, t])), [templates]);
+  const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < firstWeekday; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  function tapDay(d) {
+    const key = ymd(year, month, d);
+    setAssignments((prev) => {
+      const next = { ...prev };
+      if (next[key] === selected) delete next[key];
+      else next[key] = selected;
+      return next;
+    });
+  }
+  const prevMonth = () => (month === 0 ? (setMonth(11), setYear((y) => y - 1)) : setMonth((m) => m - 1));
+  const nextMonth = () => (month === 11 ? (setMonth(0), setYear((y) => y + 1)) : setMonth((m) => m + 1));
+
+  // ---- Contadores del año mostrado ----
+  const stats = useMemo(() => {
+    let workedDays = 0, hours = 0, vacDays = 0, freeDays = 0;
+    const prefix = `${year}-`;
+    Object.keys(assignments).forEach((k) => {
+      if (!k.startsWith(prefix)) return;
+      const t = byId[assignments[k]];
+      if (!t) return;
+      if (t.kind === "work") { workedDays++; hours += durationHours(t); }
+      else if (t.kind === "vacation") { vacDays++; }
+    });
+    const now = new Date();
+    const start = new Date(year, 0, 1);
+    let end;
+    if (year < now.getFullYear()) end = new Date(year, 11, 31);
+    else if (year > now.getFullYear()) end = new Date(year, 0, 0);
+    else end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const k = ymd(d.getFullYear(), d.getMonth(), d.getDate());
+      const t = byId[assignments[k]];
+      if (!t || (t.kind !== "work" && t.kind !== "vacation")) freeDays++;
+    }
+    return { workedDays, hours, vacDays, freeDays };
+  }, [assignments, byId, year]);
+
+  const monthWork = useMemo(() => {
+    const prefix = `${year}-${pad(month + 1)}-`;
+    return Object.keys(assignments).filter((k) => k.startsWith(prefix) && byId[assignments[k]]?.kind === "work").length;
+  }, [assignments, byId, year, month]);
+
+  const flash = (m) => { setToast(m); setTimeout(() => setToast(""), 2800); };
+
+  function exportICS() {
+    const { ics, count } = buildICS(assignments, templates);
+    if (count === 0) { flash("No hay turnos asignados todavía."); return; }
+    try {
+      const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "turnos.ics";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      flash(`Archivo con ${count} evento(s) creado. Ábrelo para importarlo.`);
+    } catch (e) { flash("Tu navegador bloqueó la descarga. Inténtalo desde Chrome."); }
+  }
+  function exportImage() {
+    const canvas = drawMonthImage(year, month, assignments, templates);
+    setImgPreview(canvas.toDataURL("image/png"));
+    try {
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = `turnos-${MESES[month]}-${year}.png`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+      }, "image/png");
+      flash("Imagen del mes creada y descargada.");
+    } catch (e) {
+      flash("Imagen creada. Mantenla pulsada abajo para guardarla.");
+    }
+  }
+
+  function exportBackup() {
+    const data = JSON.stringify({ v: 2, templates, assignments, savedAt: new Date().toISOString() }, null, 2);
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `copia-turnos-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    flash("Copia descargada. Guárdala en Drive o WhatsApp.");
+  }
+  function importBackup(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (data && data.templates && data.assignments) {
+          setTemplates(data.templates);
+          setAssignments(data.assignments);
+          flash("Copia restaurada correctamente.");
+        } else flash("El archivo no tiene el formato esperado.");
+      } catch (err) { flash("No se pudo leer el archivo."); }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }
+
+  function setNextShiftAlarm() {
+    const base = new Date(); base.setHours(0, 0, 0, 0);
+    let found = null;
+    for (let i = 0; i < 120; i++) {
+      const dd = new Date(base); dd.setDate(dd.getDate() + i);
+      const t = byId[assignments[ymd(dd.getFullYear(), dd.getMonth(), dd.getDate())]];
+      if (t && t.kind === "work" && t.start) {
+        const [sh, sm] = t.start.split(":").map(Number);
+        let am = sh * 60 + sm - 30; if (am < 0) am += 1440;
+        if (i === 0) { const now = new Date(); if (now.getHours() * 60 + now.getMinutes() >= am) continue; }
+        found = { t, h: Math.floor(am / 60), m: am % 60, dd };
+        break;
+      }
+    }
+    if (!found) { flash("No encuentro próximos turnos de trabajo."); return; }
+    const hhmm = pad(found.h) + ":" + pad(found.m);
+    const msg = encodeURIComponent("Entrada " + found.t.name);
+    const intent = `intent:#Intent;action=android.intent.action.SET_ALARM;i.android.intent.extra.alarm.HOUR=${found.h};i.android.intent.extra.alarm.MINUTES=${found.m};S.android.intent.extra.alarm.MESSAGE=${msg};end`;
+    try { window.location.href = intent; } catch (e) {}
+    flash(`Despertador ${hhmm} (${found.t.name}). Si no se abre, ponlo a esa hora.`);
+  }
+  const addTpl = () => setTemplates((p) => [...p, { id: uid(), name: "Nuevo", start: "09:00", end: "17:00", color: "#f87171", kind: "work" }]);
+  const updateTpl = (id, f, v) => setTemplates((p) => p.map((t) => (t.id === id ? { ...t, [f]: v } : t)));
+  const removeTpl = (id) => {
+    if (!window.confirm("¿Eliminar este tipo de turno? Los días ya marcados con él dejarán de contar.")) return;
+    setTemplates((p) => p.filter((t) => t.id !== id));
+    if (selected === id) setSelected(templates[0]?.id);
+  };
+
+  const fmtH = (h) => (Number.isInteger(h) ? h : h.toFixed(1));
+  const DISPLAY = "'Bricolage Grotesque', sans-serif";
+
+  return (
+    <div style={{ fontFamily: "'Spline Sans', system-ui, sans-serif" }} className="min-h-screen w-full bg-neutral-950 text-neutral-100">
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Spline+Sans:wght@400;500;600&display=swap');`}</style>
+
+      <div className="mx-auto max-w-md px-4 pb-40 pt-6">
+        <div className="flex items-end justify-between">
+          <div>
+            <h1 style={{ fontFamily: DISPLAY }} className="text-3xl font-extrabold leading-none tracking-tight">Mis Turnos</h1>
+            <p className="mt-1 text-sm text-neutral-400">Toca un día para asignar el turno.</p>
+          </div>
+          <button onClick={() => setShowHelp((v) => !v)} className="rounded-full border border-neutral-700 px-3 py-1 text-sm text-neutral-300 active:scale-95">?</button>
+        </div>
+
+        {showHelp && (
+          <div className="mt-3 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm leading-relaxed text-neutral-200">
+            <p className="font-semibold text-amber-300">Cómo usarla</p>
+            <ol className="mt-2 list-decimal space-y-1 pl-4">
+              <li>Elige un turno abajo y toca los días que lo haces (vuelve a tocar para quitar).</li>
+              <li>Los días en blanco cuentan como libres automáticamente.</li>
+              <li>Marca <b>Vacaciones</b> en los días que correspondan para contarlas.</li>
+              <li>Pulsa <b>Exportar al calendario</b> → abre el archivo con Google Calendar.</li>
+            </ol>
+            <p className="mt-3 font-semibold text-amber-300">Aviso 30 min antes (Android)</p>
+            <p className="mt-1 text-neutral-300">Cada turno lleva un aviso 30 min antes de entrar. Para que suene fuerte: Google Calendar → Ajustes → tu cuenta → activa las notificaciones. Para un despertador de verdad, pon además la alarma del Reloj a esa hora.</p>
+          </div>
+        )}
+
+        {/* Contadores del año */}
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <Stat label="Días trabajados" value={stats.workedDays} accent="#facc15" sub={`Año ${year}`} display={DISPLAY} />
+          <Stat label="Horas trabajadas" value={fmtH(stats.hours)} accent="#22c55e" sub="8 h u 12 h según turno" display={DISPLAY} />
+          <Stat label="Días librados" value={stats.freeDays} accent="#3b82f6" sub="transcurridos" display={DISPLAY} />
+          <Stat label="Vacaciones" value={stats.vacDays} accent="#f472b6" sub="días marcados" display={DISPLAY} />
+        </div>
+
+        {/* Mes */}
+        <div className="mt-5 flex items-center justify-between rounded-2xl border border-neutral-800 bg-neutral-900/60 p-2">
+          <button onClick={prevMonth} className="h-10 w-10 rounded-xl bg-neutral-800 text-lg active:scale-95">‹</button>
+          <div className="text-center">
+            <div style={{ fontFamily: DISPLAY }} className="text-lg font-bold">{MESES[month]}</div>
+            <div className="text-xs text-neutral-400">{year} · {monthWork} turnos este mes</div>
+          </div>
+          <button onClick={nextMonth} className="h-10 w-10 rounded-xl bg-neutral-800 text-lg active:scale-95">›</button>
+        </div>
+
+        {/* Selector */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {templates.map((t) => (
+            <button key={t.id} onClick={() => setSelected(t.id)}
+              className={`flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition active:scale-95 ${selected === t.id ? "border-white bg-white font-semibold text-neutral-900" : "border-neutral-700 bg-neutral-900 text-neutral-200"}`}>
+              <span className="h-3 w-3 rounded-full" style={{ background: t.color }} />{t.name}
+            </button>
+          ))}
+          <button onClick={() => setShowTpl((v) => !v)} className="rounded-full border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-300 active:scale-95">⚙︎ Editar</button>
+        </div>
+
+        {showTpl && (
+          <div className="mt-3 space-y-2 rounded-2xl border border-neutral-800 bg-neutral-900/60 p-3">
+            {templates.map((t) => (
+              <div key={t.id} className="rounded-xl bg-neutral-950/60 p-2">
+                <div className="flex items-center gap-2">
+                  <input type="color" value={t.color} onChange={(e) => updateTpl(t.id, "color", e.target.value)} className="h-8 w-8 rounded bg-transparent" />
+                  <input value={t.name} onChange={(e) => updateTpl(t.id, "name", e.target.value)} className="flex-1 rounded-lg bg-neutral-800 px-2 py-1 text-sm" />
+                  <select value={t.kind} onChange={(e) => updateTpl(t.id, "kind", e.target.value)} className="rounded-lg bg-neutral-800 px-2 py-1 text-xs">
+                    <option value="work">Trabajo</option>
+                    <option value="vacation">Vacaciones</option>
+                  </select>
+                  <button onClick={() => removeTpl(t.id)} className="rounded-lg bg-red-500/20 px-2 py-1 text-xs text-red-300">✕</button>
+                </div>
+                {t.kind === "work" && (
+                  <div className="mt-2 flex items-center gap-2 text-sm">
+                    <span className="text-neutral-400">Entra</span>
+                    <input type="time" value={t.start} onChange={(e) => updateTpl(t.id, "start", e.target.value)} className="rounded-lg bg-neutral-800 px-2 py-1" />
+                    <span className="text-neutral-400">Sale</span>
+                    <input type="time" value={t.end} onChange={(e) => updateTpl(t.id, "end", e.target.value)} className="rounded-lg bg-neutral-800 px-2 py-1" />
+                    <span className="ml-auto text-xs text-neutral-500">{fmtH(durationHours(t))} h</span>
+                  </div>
+                )}
+              </div>
+            ))}
+            <button onClick={addTpl} className="w-full rounded-xl border border-dashed border-neutral-600 py-2 text-sm text-neutral-300 active:scale-95">+ Añadir turno</button>
+          </div>
+        )}
+
+        {/* Calendario */}
+        <div className="mt-4 grid grid-cols-7 gap-1 text-center text-xs text-neutral-500">
+          {DIAS.map((d) => <div key={d} className="py-1">{d}</div>)}
+        </div>
+        <div className="mt-1 grid grid-cols-7 gap-1">
+          {cells.map((d, i) => {
+            if (d === null) return <div key={i} />;
+            const key = ymd(year, month, d);
+            const t = byId[assignments[key]];
+            const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+            return (
+              <button key={i} onClick={() => tapDay(d)}
+                className={`relative flex aspect-square flex-col items-center justify-center rounded-xl border text-sm transition active:scale-95 ${isToday ? "border-white" : "border-neutral-800"}`}
+                style={{ background: t ? t.color + "33" : "transparent" }}>
+                <span className={t ? "font-semibold" : "text-neutral-300"}>{d}</span>
+                {t && <span className="mt-0.5 h-1.5 w-1.5 rounded-full" style={{ background: t.color }} />}
+                {t && <span className="absolute bottom-0.5 text-[8px] leading-none text-neutral-300">{t.name.slice(0, 4)}</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        {imgPreview && (
+          <div className="mt-4 rounded-2xl border border-neutral-800 bg-neutral-900/60 p-3">
+            <p className="text-xs text-neutral-400">Imagen lista. Mantenla pulsada para guardarla o compartirla por WhatsApp; o úsala para imprimir.</p>
+            <img src={imgPreview} alt={"Turnos de " + MESES[month] + " " + year} className="mt-2 w-full rounded-lg border border-neutral-800" />
+          </div>
+        )}
+
+        {/* Despertador y copia de seguridad */}
+        <div className="mt-5 space-y-2 rounded-2xl border border-neutral-800 bg-neutral-900/60 p-3">
+          <button onClick={setNextShiftAlarm} className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-800 py-3 text-sm font-semibold text-neutral-100 active:scale-95">
+            ⏰ Poner despertador para mi próximo turno
+          </button>
+          <div className="flex gap-2">
+            <button onClick={exportBackup} className="flex-1 rounded-xl border border-neutral-700 py-2.5 text-sm text-neutral-200 active:scale-95">💾 Guardar copia</button>
+            <label className="flex-1 cursor-pointer rounded-xl border border-neutral-700 py-2.5 text-center text-sm text-neutral-200 active:scale-95">
+              📂 Restaurar copia
+              <input type="file" accept="application/json,.json" onChange={importBackup} className="hidden" />
+            </label>
+          </div>
+          <p className="text-[11px] leading-snug text-neutral-500">
+            El despertador abre tu app de alarmas a 30 min antes de entrar (es para el <b>próximo</b> turno; hazlo cada día). Guarda una copia de vez en cuando para no perder nunca tus turnos.
+          </p>
+        </div>
+
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 mx-auto max-w-md border-t border-neutral-800 bg-neutral-950/95 p-3 backdrop-blur">
+        <div className="flex flex-col gap-2">
+          <button onClick={exportICS} className="w-full rounded-2xl bg-amber-400 py-3 font-semibold text-neutral-900 active:scale-95">Exportar al calendario (.ics)</button>
+          <button onClick={exportImage} className="w-full rounded-2xl bg-neutral-100 py-3 text-sm font-semibold text-neutral-900 active:scale-95">Exportar imagen (PNG)</button>
+        </div>
+      </div>
+
+      {toast && (
+        <div className="fixed inset-x-0 bottom-24 mx-auto w-fit max-w-[90%] rounded-full bg-white px-4 py-2 text-center text-sm font-medium text-neutral-900 shadow-lg">{toast}</div>
+      )}
+    </div>
+  );
+}
+
+function Stat({ label, value, accent, sub, display }) {
+  return (
+    <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-3">
+      <div className="flex items-center gap-2">
+        <span className="h-2.5 w-2.5 rounded-full" style={{ background: accent }} />
+        <span className="text-xs text-neutral-400">{label}</span>
+      </div>
+      <div style={{ fontFamily: display, color: accent }} className="mt-1 text-2xl font-extrabold leading-none">{value}</div>
+      <div className="mt-0.5 text-[10px] text-neutral-500">{sub}</div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
