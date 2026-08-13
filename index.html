@@ -12,17 +12,165 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<script src="https://cdn.tailwindcss.com"></script>
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Spline+Sans:wght@400;500;600&display=swap');
-html, body { background: #0a0a0a; margin: 0; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #0a0a0a; color: #f5f5f5; font-family: system-ui, -apple-system, sans-serif; }
+button { font-family: inherit; cursor: pointer; border: 0; background: transparent; color: inherit; padding: 0; }
+input, textarea, select { font-family: inherit; color: inherit; }
+
+/* utilidades base */
+.min-h-screen { min-height: 100vh; }
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.flex { display: flex; }
+.inline-flex { display: inline-flex; }
+.grid { display: grid; }
+.hidden { display: none; }
+.block { display: block; }
+.relative { position: relative; }
+.absolute { position: absolute; }
+.fixed { position: fixed; }
+.inset-x-0 { left: 0; right: 0; }
+.bottom-0 { bottom: 0; }
+.bottom-24 { bottom: 6rem; }
+.top-0 { top: 0; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+.text-left { text-align: left; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.items-center { align-items: center; }
+.items-end { align-items: flex-end; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.flex-1 { flex: 1 1 0%; }
+.flex-col { flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+.gap-1 { gap: 0.25rem; }
+.gap-2 { gap: 0.5rem; }
+.space-y-1 > * + * { margin-top: 0.25rem; }
+.space-y-2 > * + * { margin-top: 0.5rem; }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.grid-cols-7 { grid-template-columns: repeat(7, minmax(0,1fr)); }
+.aspect-square { aspect-ratio: 1 / 1; }
+
+/* tamaños/espaciado */
+.max-w-md { max-width: 28rem; }
+.w-fit { width: fit-content; }
+.max-w-\[90\%\] { max-width: 90%; }
+.h-10 { height: 2.5rem; }
+.w-10 { width: 2.5rem; }
+.h-8 { height: 2rem; }
+.w-8 { width: 2rem; }
+.h-3 { height: 0.75rem; }
+.w-3 { width: 0.75rem; }
+.h-2\.5 { height: 0.625rem; }
+.w-2\.5 { width: 0.625rem; }
+.h-1\.5 { height: 0.375rem; }
+.w-1\.5 { width: 0.375rem; }
+.h-40 { height: 10rem; }
+
+.p-2 { padding: 0.5rem; }
+.p-3 { padding: 0.75rem; }
+.p-4 { padding: 1rem; }
+.px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+.px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.py-2\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
+.py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.pt-6 { padding-top: 1.5rem; }
+.pb-40 { padding-bottom: 10rem; }
+.pl-4 { padding-left: 1rem; }
+.pl-0\.5 { padding-left: 0.125rem; }
+
+.mt-0\.5 { margin-top: 0.125rem; }
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-3 { margin-top: 0.75rem; }
+.mt-4 { margin-top: 1rem; }
+.mt-5 { margin-top: 1.25rem; }
+.ml-auto { margin-left: auto; }
+
+/* tipografía */
+.text-\[8px\] { font-size: 8px; line-height: 1; }
+.text-\[10px\] { font-size: 10px; }
+.text-\[11px\] { font-size: 11px; }
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+.font-extrabold { font-weight: 800; }
+.leading-none { line-height: 1; }
+.leading-snug { line-height: 1.375; }
+.leading-relaxed { line-height: 1.625; }
+.tracking-tight { letter-spacing: -0.025em; }
+.list-decimal { list-style-type: decimal; }
+
+/* colores base */
+.bg-neutral-950 { background-color: #0a0a0a; }
+.bg-neutral-900 { background-color: #171717; }
+.bg-neutral-800 { background-color: #262626; }
+.bg-neutral-100 { background-color: #f5f5f5; }
+.bg-white { background-color: #ffffff; }
+.bg-amber-400 { background-color: #fbbf24; }
+.bg-red-500\/20 { background-color: rgba(239,68,68,0.2); }
+.bg-neutral-900\/60 { background-color: rgba(23,23,23,0.6); }
+.bg-neutral-950\/60 { background-color: rgba(10,10,10,0.6); }
+.bg-neutral-950\/95 { background-color: rgba(10,10,10,0.95); }
+.bg-amber-500\/5 { background-color: rgba(245,158,11,0.05); }
+
+.text-white { color: #ffffff; }
+.text-neutral-100 { color: #f5f5f5; }
+.text-neutral-200 { color: #e5e5e5; }
+.text-neutral-300 { color: #d4d4d4; }
+.text-neutral-400 { color: #a3a3a3; }
+.text-neutral-500 { color: #737373; }
+.text-neutral-900 { color: #171717; }
+.text-red-300 { color: #fca5a5; }
+.text-amber-300 { color: #fcd34d; }
+
+/* bordes */
+.border { border-width: 1px; border-style: solid; border-color: transparent; }
+.border-t { border-top-width: 1px; border-top-style: solid; }
+.border-dashed { border-style: dashed; }
+.border-neutral-600 { border-color: #525252; }
+.border-neutral-700 { border-color: #404040; }
+.border-neutral-800 { border-color: #262626; }
+.border-white { border-color: #ffffff; }
+.border-amber-500\/30 { border-color: rgba(245,158,11,0.3); }
+
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-2xl { border-radius: 1rem; }
+.rounded-full { border-radius: 9999px; }
+
+.shadow-lg { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.4), 0 4px 6px -4px rgba(0,0,0,0.3); }
+.backdrop-blur { backdrop-filter: blur(8px); }
+.cursor-pointer { cursor: pointer; }
+.transition { transition: background-color .15s, border-color .15s, color .15s, transform .1s; }
+
+/* interacción */
+.active\:scale-95:active { transform: scale(0.95); }
+
+/* forma redonda (input color) */
+input[type="color"] { border: 0; padding: 0; background: transparent; }
+input[type="time"], input[type="text"], textarea, select {
+  border: 0; outline: 0;
+}
+
 </style>
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
 </head>
 <body>
-<div id="root"></div>
+<div id="root" style="padding:16px;color:#aaa;font-family:system-ui,sans-serif">Cargando…</div>
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useMemo } = React;
 
@@ -380,11 +528,11 @@ function App() {
   };
 
   const fmtH = (h) => (Number.isInteger(h) ? h : h.toFixed(1));
-  const DISPLAY = "'Bricolage Grotesque', sans-serif";
+  const DISPLAY = "inherit";
 
   return (
-    <div style={{ fontFamily: "'Spline Sans', system-ui, sans-serif" }} className="min-h-screen w-full bg-neutral-950 text-neutral-100">
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Spline+Sans:wght@400;500;600&display=swap');`}</style>
+    <div style={{ fontFamily: "system-ui, -apple-system, sans-serif" }} className="min-h-screen w-full bg-neutral-950 text-neutral-100">
+      
 
       <div className="mx-auto max-w-md px-4 pb-40 pt-6">
         <div className="flex items-end justify-between">
