@@ -175,7 +175,7 @@ input[type="time"], input[type="text"], textarea, select {
 .nm-bar { position:relative; height:8px; border-radius:99px; background:#262626; margin-top:10px; overflow:hidden; }
 .nm-bar-p, .nm-bar-u { position:absolute; left:0; top:0; bottom:0; border-radius:99px; }
 .nm-bar-p { background:#c084fc; opacity:.55; }
-.nm-bar-u { background:#f472b6; }
+.nm-bar-u { background:#ff2d95; }
 .nm-tabs { display:flex; gap:4px; margin-top:14px; padding:4px; border:1px solid #262626; border-radius:16px; background:rgba(23,23,23,.6); }
 .nm-tab { flex:1; padding:9px 0; border-radius:12px; font-size:14px; color:#a3a3a3; font-weight:600; }
 .nm-tab-on { background:#f5f5f5; color:#171717; }
@@ -225,6 +225,7 @@ input[type="time"], input[type="text"], textarea, select {
 .nm-inp { display:flex; align-items:center; gap:4px; }
 .nm-inp input { width:92px; text-align:right; border:0; border-radius:8px; background:#262626; padding:6px 8px; font-size:14px; }
 .nm-inp em { font-style:normal; font-size:11px; color:#737373; width:24px; }
+.nm-ok { margin:10px 0 0; font-size:12px; line-height:1.4; color:#4ade80; }
 .nm-reset { margin-top:4px; font-size:12px; color:#fca5a5; border:1px solid rgba(239,68,68,.3); border-radius:10px; padding:7px; }
 </style>
 </head>
@@ -554,22 +555,39 @@ function isDark(hex) {
   }
 }
 // Aplica una sola vez la nueva paleta a los turnos ya guardados
+const VAC_PINK = "#ff2d95";
 function migrateColors(tpls) {
-  try {
-    if (localStorage.getItem(KEY_COLORS)) return tpls;
-    localStorage.setItem(KEY_COLORS, "1");
-  } catch (e) {
-    return tpls;
-  }
-  const NEW = {
+  // Cada tanda de colores se aplica una sola vez; después respeta lo que edites a mano
+  const batches = [["turnos:colores:v1", {
     m: "#3b82f6",
     t: "#22c55e",
     n: "#141a14"
+  }], ["turnos:colores:v2", {
+    vac: VAC_PINK
+  }]];
+  let out = tpls;
+  for (const [key, NEW] of batches) {
+    try {
+      if (localStorage.getItem(key)) continue;
+      localStorage.setItem(key, "1");
+    } catch (e) {
+      continue;
+    }
+    out = out.map(t => NEW[t.id] ? {
+      ...t,
+      color: NEW[t.id]
+    } : t);
+  }
+  return out;
+}
+// Estilo propio para vacaciones: círculo con rayas diagonales y borde discontinuo
+function vacCellStyle(color, isToday) {
+  return {
+    borderRadius: "999px",
+    border: "2px dashed " + (isToday ? "#ffffff" : color),
+    background: `repeating-linear-gradient(135deg, ${color}66 0 5px, ${color}1f 5px 10px)`,
+    boxShadow: "0 0 10px " + color + "55"
   };
-  return tpls.map(t => NEW[t.id] ? {
-    ...t,
-    color: NEW[t.id]
-  } : t);
 }
 function loadJSON(key, fallback) {
   try {
@@ -625,7 +643,7 @@ const DEFAULT_TEMPLATES = [{
   name: "Vacaciones",
   start: "",
   end: "",
-  color: "#f472b6",
+  color: "#ff2d95",
   kind: "vacation"
 }];
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
@@ -773,6 +791,19 @@ function drawMonthImage(year, month, assignments, templates) {
       if (t) {
         ctx.fillStyle = t.color;
         ctx.fill();
+        if (t.kind === "vacation") {
+          ctx.save();
+          ctx.clip();
+          ctx.strokeStyle = "rgba(255,255,255,0.35)";
+          ctx.lineWidth = 5;
+          for (let k = -cellH; k < cellW; k += 12) {
+            ctx.beginPath();
+            ctx.moveTo(x + k, y + cellH);
+            ctx.lineTo(x + k + cellH, y);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
         ctx.fillStyle = isLight(t.color) ? "#1e293b" : "#ffffff";
         ctx.textAlign = "left";
         ctx.font = "700 18px sans-serif";
@@ -1007,7 +1038,7 @@ function VacationCard({
     }
   })), ce("div", {
     className: "nm-hgrid"
-  }, box("Disfrutados", used, "#f472b6", "hasta hoy"), box("Reservados", planned, "#c084fc", "marcados a futuro"), box("Te quedan", left, left < 0 ? "#f87171" : "#4ade80", "por asignar")), left < 0 && ce("p", {
+  }, box("Disfrutados", used, "#ff2d95", "hasta hoy"), box("Reservados", planned, "#c084fc", "marcados a futuro"), box("Te quedan", left, left < 0 ? "#f87171" : "#4ade80", "por asignar")), left < 0 && ce("p", {
     className: "nm-warn"
   }, "⚠︎ Has marcado más días de vacaciones de los que te corresponden este año."));
 }
@@ -1032,33 +1063,47 @@ const numES = x => Number.isInteger(x) ? String(x) : x.toLocaleString("es-ES", {
   maximumFractionDigits: 2
 });
 
-// Clasifica un turno de trabajo:
-//  - 12 h (≈11 h o más)  -> festivo (todas sus horas)
-//  - turno que cruza medianoche o entra de 20:00 en adelante -> noche (todas sus horas)
-//  - mañana/tarde en sábado o domingo -> fin de semana
-//  - resto -> sin plus
+// Horas con plus, tal y como las paga la empresa (comprobado con las nóminas de may–sep 2026):
+//  - Nocturnidad = horas entre las 22:00 y las 06:00 (horario nocturno legal),
+//    contando los turnos a su hora oficial (7-15-23): noche 23–7 = 7 h; tarde 15–23 = 1 h (de 22 a 23)
+//  - Fin de semana = turno de mañana o tarde en sábado o domingo: todas sus horas (8 h)
+//  - Noche en fin de semana = noche normal (7 h)
+//  - Turno de 12 h = festivo: 12 h
+function shiftHours(t) {
+  // Hora oficial: redondea a la hora en punto (06:45 -> 7, 22:45 -> 23)
+  const toH = hhmm => {
+    const [h, m] = hhmm.split(":").map(Number);
+    return Math.round((h * 60 + m) / 60);
+  };
+  const s = toH(t.start);
+  let e = toH(t.end);
+  if (e <= s) e += 24;
+  return [s, e];
+}
 function classifyShift(t, dateKey) {
   if (!t || t.kind !== "work" || !t.start || !t.end) return null;
-  const hrs = Math.round(durationHours(t) * 4) / 4; // redondeo a 1/4 h (ignora los 15 min de cambio)
-  if (hrs >= 11) return {
-    type: "holiday",
-    hrs
+  const [s, e] = shiftHours(t);
+  const hrs = e - s;
+  const out = {
+    night: 0,
+    weekend: 0,
+    holiday: 0,
+    full: e > 24
   };
-  const crosses = t.end <= t.start;
-  if (crosses || t.start >= "20:00") return {
-    type: "night",
-    hrs
-  };
+  if (hrs >= 11) {
+    out.holiday = hrs;
+    return out;
+  }
+  let nightH = 0;
+  for (let h = s; h < e; h++) {
+    const hh = h % 24;
+    if (hh >= 22 || hh < 6) nightH++;
+  }
   const [Y, M, D] = dateKey.split("-").map(Number);
   const wd = new Date(Y, M - 1, D).getDay(); // 0 domingo, 6 sábado
-  if (wd === 0 || wd === 6) return {
-    type: "weekend",
-    hrs
-  };
-  return {
-    type: "normal",
-    hrs
-  };
+  const crosses = e > 24;
+  if (!crosses && (wd === 0 || wd === 6)) out.weekend = hrs;else out.night = nightH;
+  return out;
 }
 function extraHoursForMonth(year, month, assignments, byId) {
   const res = {
@@ -1076,14 +1121,17 @@ function extraHoursForMonth(year, month, assignments, byId) {
     const c = classifyShift(byId[assignments[key]], key);
     if (!c) continue;
     res.shifts++;
-    if (c.type === "night") {
-      res.night += c.hrs;
+    if (c.night) {
+      res.night += c.night;
       res.nNight++;
-    } else if (c.type === "weekend") {
-      res.weekend += c.hrs;
+      if (c.full) res.nNightFull = (res.nNightFull || 0) + 1;else res.nLate = (res.nLate || 0) + 1;
+    }
+    if (c.weekend) {
+      res.weekend += c.weekend;
       res.nWeekend++;
-    } else if (c.type === "holiday") {
-      res.holiday += c.hrs;
+    }
+    if (c.holiday) {
+      res.holiday += c.holiday;
       res.nHoliday++;
     }
   }
@@ -1091,7 +1139,7 @@ function extraHoursForMonth(year, month, assignments, byId) {
 }
 
 // Nómina que se cobra a final de (payYear, payMonth). Variables = mes anterior.
-function computePayroll(payYear, payMonth, assignments, byId, s) {
+function computePayroll(payYear, payMonth, assignments, byId, s, startKey) {
   const src = new Date(payYear, payMonth - 1, 1);
   const srcY = src.getFullYear(),
     srcM = src.getMonth();
@@ -1100,7 +1148,16 @@ function computePayroll(payYear, payMonth, assignments, byId, s) {
   const base = toNumFlex(s.base),
     prorrata = toNumFlex(s.prorrata),
     convenio = toNumFlex(s.convenio);
-  const fijo = r2(base + prorrata + convenio);
+  // Mes de alta: la nómina paga solo los días desde el alta (mes comercial de 30 días)
+  let dias = 30;
+  if (startKey && startKey.slice(0, 7) === `${payYear}-${pad(payMonth + 1)}`) {
+    const startDay = Number(startKey.slice(8, 10));
+    dias = Math.min(30, new Date(payYear, payMonth + 1, 0).getDate() - startDay + 1);
+  }
+  const fBase = r2(base * dias / 30),
+    fProrrata = r2(prorrata * dias / 30),
+    fConvenio = r2(convenio * dias / 30);
+  const fijo = r2(fBase + fProrrata + fConvenio);
   const impNight = r2(h.night * rate),
     impWeekend = r2(h.weekend * rate),
     impHoliday = r2(h.holiday * rate);
@@ -1108,11 +1165,24 @@ function computePayroll(payYear, payMonth, assignments, byId, s) {
   const bruto = r2(fijo + variable);
   const ccPct = toNumFlex(s.cc),
     accPct = toNumFlex(s.acc);
-  const cc = r2(bruto * ccPct / 100),
-    acc = r2(bruto * accPct / 100);
+  // La empresa redondea por separado la parte fija y la de intervenciones
+  const cc = r2(r2(fijo * ccPct / 100) + r2(variable * ccPct / 100)),
+    acc = r2(r2(fijo * accPct / 100) + r2(variable * accPct / 100));
   const desc = r2(cc + acc);
   const neto = r2(bruto - desc);
   const payDate = new Date(payYear, payMonth + 1, 0);
+  const realRaw = s.real && s.real[`${payYear}-${pad(payMonth + 1)}`];
+  const real = realRaw !== undefined && String(realRaw).trim() !== "" ? r2(toNumFlex(realRaw)) : null;
+  const realHRaw = s.realH && s.realH[`${payYear}-${pad(payMonth + 1)}`];
+  const realH = realHRaw !== undefined && String(realHRaw).trim() !== "" ? toNumFlex(realHRaw) : null;
+  // Neto que saldría con otra cantidad de horas (para explicar diferencias)
+  const netoFor = hh => {
+    const v = r2(hh * rate);
+    const b = r2(fijo + v);
+    const c1 = r2(r2(fijo * ccPct / 100) + r2(v * ccPct / 100)),
+      c2 = r2(r2(fijo * accPct / 100) + r2(v * accPct / 100));
+    return r2(b - c1 - c2);
+  };
   const t0 = new Date();
   t0.setHours(0, 0, 0, 0);
   return {
@@ -1120,9 +1190,10 @@ function computePayroll(payYear, payMonth, assignments, byId, s) {
     srcM,
     h,
     rate,
-    base,
-    prorrata,
-    convenio,
+    base: fBase,
+    prorrata: fProrrata,
+    convenio: fConvenio,
+    dias,
     fijo,
     impNight,
     impWeekend,
@@ -1135,6 +1206,10 @@ function computePayroll(payYear, payMonth, assignments, byId, s) {
     acc,
     desc,
     neto,
+    real,
+    realH,
+    netoFor,
+    cobrado: real !== null ? real : neto,
     payDate,
     paid: payDate <= t0
   };
@@ -1189,8 +1264,8 @@ function NominaView({
   const [py, setPy] = useState(now.getFullYear());
   const [pm, setPm] = useState(now.getMonth());
   const [showCfg, setShowCfg] = useState(false);
-  const p = computePayroll(py, pm, assignments, byId, settings);
   const startKey = useMemo(() => firstWorkKey(assignments, byId), [assignments, byId]);
+  const p = computePayroll(py, pm, assignments, byId, settings, startKey);
   const off = beforeStart(py, pm, startKey);
   const startTxt = startKey ? MESES[Number(startKey.slice(5, 7)) - 1].toLowerCase() + " de " + startKey.slice(0, 4) : "";
   const prev = () => pm === 0 ? (setPm(11), setPy(y => y - 1)) : setPm(m => m - 1);
@@ -1209,11 +1284,11 @@ function NominaView({
         });
         continue;
       }
-      const r = computePayroll(py, m, assignments, byId, settings);
-      forecast += r.neto;
+      const r = computePayroll(py, m, assignments, byId, settings, startKey);
+      forecast += r.cobrado;
       if (r.paid) {
-        paidTotal += r.neto;
-        acc += r.neto;
+        paidTotal += r.cobrado;
+        acc += r.cobrado;
       }
       rows.push({
         m,
@@ -1253,7 +1328,31 @@ function NominaView({
     }
   }, numES(v), ce("small", null, " h")), ce("div", {
     className: "nm-sub"
-  }, n, n === 1 ? " turno" : " turnos"));
+  }, typeof n === "string" ? n : n + (n === 1 ? " turno" : " turnos")));
+  const mk = `${py}-${pad(pm + 1)}`;
+  const realInput = (k, label, suffix, mode) => ce("label", {
+    className: "nm-field",
+    style: {
+      marginTop: 8
+    }
+  }, ce("span", null, label), ce("span", {
+    className: "nm-inp"
+  }, ce("input", {
+    type: "text",
+    inputMode: mode,
+    placeholder: "—",
+    value: settings[k] && settings[k][mk] || "",
+    onChange: e => {
+      const v = e.target.value;
+      setSettings(s => ({
+        ...s,
+        [k]: {
+          ...(s[k] || {}),
+          [mk]: v
+        }
+      }));
+    }
+  }), ce("em", null, suffix)));
   const payDateTxt = pad(p.payDate.getDate()) + "/" + pad(p.payDate.getMonth() + 1) + "/" + p.payDate.getFullYear();
   const field = (k, label, suffix) => ce("label", {
     key: k,
@@ -1318,7 +1417,7 @@ function NominaView({
     }
   }, "Se pagan a mes vencido: la nómina de ", MESES[pm].toLowerCase(), " paga lo hecho en ", MESES[p.srcM].toLowerCase(), "."), ce("div", {
     className: "nm-hgrid"
-  }, hrsCard("Noche", p.h.night, p.h.nNight, NEON), hrsCard("Finde", p.h.weekend, p.h.nWeekend, "#2dd4bf"), hrsCard("Festivo", p.h.holiday, p.h.nHoliday, "#fb923c")), p.h.shifts === 0 && !beforeStart(p.srcY, p.srcM, startKey) && ce("p", {
+  }, hrsCard("Noche", p.h.night, (p.h.nNightFull || 0) + " noches · " + (p.h.nLate || 0) + " tardes", NEON), hrsCard("Finde", p.h.weekend, p.h.nWeekend, "#2dd4bf"), hrsCard("Festivo", p.h.holiday, p.h.nHoliday, "#fb923c")), p.h.shifts === 0 && !beforeStart(p.srcY, p.srcM, startKey) && ce("p", {
     className: "nm-warn"
   }, "⚠︎ No hay turnos registrados en ", MESES[p.srcM].toLowerCase(), ". Si trabajaste ese mes, márcalos en la pestaña Turnos para que el cálculo sea real.")),
   // --- Desglose
@@ -1328,11 +1427,53 @@ function NominaView({
     className: "nm-h"
   }, "Desglose"), ce("div", {
     className: "nm-sec"
-  }, "Fijo"), line("Sueldo base", null, eur(p.base)), line("Prorrateo extras", null, eur(p.prorrata)), line("A cuenta convenio", null, eur(p.convenio)), line("Bruto fijo", null, eur(p.fijo), "nm-sum"), ce("div", {
+  }, "Fijo"), line("Sueldo base", p.dias < 30 ? p.dias + " días (mes de alta)" : null, eur(p.base)), line("Prorrateo extras", null, eur(p.prorrata)), line("A cuenta convenio", null, eur(p.convenio)), line("Bruto fijo", null, eur(p.fijo), "nm-sum"), ce("div", {
     className: "nm-sec"
   }, "Pluses (", MESES[p.srcM].toLowerCase(), ")"), line("Nocturnidad", numES(p.h.night) + " h × " + rate, eur(p.impNight)), line("Fin de semana", numES(p.h.weekend) + " h × " + rate, eur(p.impWeekend)), line("Festivos", numES(p.h.holiday) + " h × " + rate, eur(p.impHoliday)), line("Bruto noches/findes/festivos", null, eur(p.variable), "nm-sum"), line("Bruto total", null, eur(p.bruto), "nm-sum nm-strong"), ce("div", {
     className: "nm-sec"
   }, "Descuentos"), line("Cont. comunes", numES(p.ccPct) + " % de " + eur(p.bruto), "−" + eur(p.cc)), line("Dto. base accidente", numES(p.accPct) + " % de " + eur(p.bruto), "−" + eur(p.acc)), line("Total descuentos", null, "−" + eur(p.desc), "nm-sum"), line("Neto", null, eur(p.neto), "nm-sum nm-net")),
+  // --- Nómina real
+  !off && ce("div", {
+    className: "nm-card nm-mt"
+  }, ce("div", {
+    className: "nm-h"
+  }, "Tu nómina real"), ce("p", {
+    className: "nm-note",
+    style: {
+      marginTop: 0
+    }
+  }, "Cuando te llegue, apunta el líquido a percibir y las horas de \u201cIntervenciones HDT\u201d."), realInput("real", "Neto real cobrado", "€", "decimal"), realInput("realH", "Horas de intervención pagadas", "h", "decimal"), (() => {
+    const calcH = r2(p.h.night + p.h.weekend + p.h.holiday);
+    const out = [];
+    if (p.realH !== null) {
+      const dh = r2(p.realH - calcH);
+      out.push(ce("p", {
+        key: "h",
+        className: Math.abs(dh) < 0.01 ? "nm-ok" : "nm-warn"
+      }, Math.abs(dh) < 0.01 ? "✓ Horas: te pagaron " + numES(p.realH) + " h, las mismas que calcula la app." : "Horas: te pagaron " + numES(p.realH) + " h y la app calcula " + numES(calcH) + " h (" + (dh > 0 ? "+" : "−") + numES(Math.abs(dh)) + " h " + (dh > 0 ? "a tu favor" : "que te faltan") + "). Mira si algún día fichaste fuera de tu horario habitual."));
+    }
+    if (p.real !== null) {
+      const diff = r2(p.real - p.neto);
+      const ok = Math.abs(diff) <= 0.05;
+      let why = "";
+      if (!ok && p.realH !== null) {
+        const netoH = p.netoFor(p.realH);
+        if (Math.abs(p.real - netoH) <= 0.05) why = " Se explica entero por la diferencia de horas.";else if (p.realH > 0) {
+          // precio por hora que haría cuadrar el neto
+          const f = 1 - (p.ccPct + p.accPct) / 100;
+          const impl = (p.real / f - p.fijo) / p.realH;
+          why = " Con esas horas, cuadra si te pagaron la hora a unos " + eur(impl) + " en vez de " + eur(p.rate) + ".";
+        }
+      } else if (!ok) {
+        why = " Equivale a unas " + numES(Math.round(Math.abs(diff) / (1 - (p.ccPct + p.accPct) / 100) / (p.rate || 1) * 100) / 100) + " h de intervención.";
+      }
+      out.push(ce("p", {
+        key: "n",
+        className: ok ? "nm-ok" : "nm-warn"
+      }, ok ? "✓ Neto: cuadra con lo calculado (" + eur(p.neto) + ")." : "Neto: cobraste " + eur(Math.abs(diff)) + (diff > 0 ? " más" : " menos") + " de lo calculado (" + eur(p.neto) + ")." + why));
+    }
+    return out;
+  })()),
   // --- Contador anual
   ce("div", {
     className: "nm-card nm-mt"
@@ -1388,7 +1529,11 @@ function NominaView({
       });
     },
     className: "nm-yrow" + (m === pm ? " nm-yrow-on" : "") + (r.paid ? "" : " nm-future")
-  }, ce("span", null, MESES[m], !r.paid && ce("em", null, " previsto")), ce("span", null, eur(r.neto)), ce("span", null, acc === null ? "—" : eur(acc)))), ce("p", {
+  }, ce("span", null, MESES[m], !r.paid && ce("em", null, " previsto"), r.real !== null && ce("em", {
+    style: {
+      color: "#4ade80"
+    }
+  }, " ✓ real")), ce("span", null, eur(r.cobrado)), ce("span", null, acc === null ? "—" : eur(acc)))), ce("p", {
     className: "nm-note"
   }, "Cuenta como cobrada cada nómina cuyo último día de mes ya ha pasado. ", startKey ? "Se cuenta desde tu alta (" + startTxt + "). " : "", "Toca un mes para ver su desglose.")),
   // --- Ajustes
@@ -1712,7 +1857,7 @@ function App() {
   }), /*#__PURE__*/React.createElement(Stat, {
     label: "Vacaciones",
     value: stats.vacDays + "/" + fmtH(vacEntitlement(nomina, year)),
-    accent: "#f472b6",
+    accent: "#ff2d95",
     sub: "quedan " + fmtH(vacEntitlement(nomina, year) - stats.vacDays),
     display: DISPLAY
   })), React.createElement(VacationCard, {
@@ -1819,7 +1964,7 @@ function App() {
       key: i,
       onClick: () => tapDay(d),
       className: `relative flex aspect-square flex-col items-center justify-center rounded-xl border text-sm transition active:scale-95 ${isToday ? "border-white" : "border-neutral-800"}`,
-      style: t && isDark(t.color) ? {
+      style: t && t.kind === "vacation" ? vacCellStyle(t.color, isToday) : t && isDark(t.color) ? {
         background: t.color,
         borderColor: isToday ? "#ffffff" : NEON,
         boxShadow: "inset 0 0 8px " + NEON + "40"
@@ -1831,12 +1976,17 @@ function App() {
       style: t && isDark(t.color) ? {
         color: NEON
       } : undefined
-    }, d), t && /*#__PURE__*/React.createElement("span", {
+    }, d), t && t.kind === "vacation" ? React.createElement("span", {
+      style: {
+        fontSize: 11,
+        lineHeight: 1
+      }
+    }, "🌴") : t && /*#__PURE__*/React.createElement("span", {
       className: "mt-0.5 h-1.5 w-1.5 rounded-full",
       style: {
         background: isDark(t.color) ? NEON : t.color
       }
-    }), t && /*#__PURE__*/React.createElement("span", {
+    }), t && t.kind !== "vacation" && /*#__PURE__*/React.createElement("span", {
       className: "absolute bottom-0.5 text-[8px] leading-none text-neutral-300"
     }, t.name.slice(0, 4)));
   })), React.createElement(MonthExtraHours, {
