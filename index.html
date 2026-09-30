@@ -170,6 +170,62 @@ input[type="time"], input[type="text"], textarea, select {
 
 
 
+
+/* ---- Nómina ---- */
+.nm-bar { position:relative; height:8px; border-radius:99px; background:#262626; margin-top:10px; overflow:hidden; }
+.nm-bar-p, .nm-bar-u { position:absolute; left:0; top:0; bottom:0; border-radius:99px; }
+.nm-bar-p { background:#c084fc; opacity:.55; }
+.nm-bar-u { background:#f472b6; }
+.nm-tabs { display:flex; gap:4px; margin-top:14px; padding:4px; border:1px solid #262626; border-radius:16px; background:rgba(23,23,23,.6); }
+.nm-tab { flex:1; padding:9px 0; border-radius:12px; font-size:14px; color:#a3a3a3; font-weight:600; }
+.nm-tab-on { background:#f5f5f5; color:#171717; }
+.nm-card { border:1px solid #262626; background:rgba(23,23,23,.6); border-radius:16px; padding:12px; }
+.nm-mt { margin-top:12px; }
+.nm-row { display:flex; align-items:center; gap:6px; }
+.nm-gap { gap:8px; flex-wrap:wrap; }
+.nm-chip { flex:1; min-width:0; display:flex; align-items:center; gap:5px; padding:7px 7px; white-space:nowrap; border-radius:10px; background:#0a0a0a; font-size:12px; }
+.nm-chip-l { color:#a3a3a3; }
+.nm-chip b { margin-left:auto; font-size:13px; white-space:nowrap; }
+.nm-dot { width:9px; height:9px; border-radius:99px; flex:none; display:inline-block; }
+.nm-note { margin:8px 0 0; font-size:11px; line-height:1.4; color:#737373; }
+.nm-warn { margin:10px 0 0; font-size:12px; line-height:1.4; color:#fcd34d; background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.3); border-radius:10px; padding:8px; }
+.nm-nav { display:flex; align-items:center; justify-content:space-between; padding:8px; }
+.nm-navbtn { width:40px; height:40px; border-radius:12px; background:#262626; font-size:18px; }
+.nm-navbtn.nm-sm { width:32px; height:32px; font-size:16px; }
+.nm-center { text-align:center; }
+.nm-title { font-size:18px; font-weight:700; }
+.nm-sub { font-size:11px; color:#a3a3a3; }
+.nm-hero { text-align:center; padding:16px 12px; background:linear-gradient(180deg, rgba(34,197,94,.12), rgba(23,23,23,.6)); border-color:rgba(34,197,94,.3); }
+.nm-hero-v { font-size:34px; font-weight:800; letter-spacing:-.02em; color:#4ade80; margin:4px 0; font-variant-numeric:tabular-nums; }
+.nm-h { font-size:14px; font-weight:700; margin-bottom:4px; }
+.nm-hgrid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin-top:10px; }
+.nm-hbox { background:#0a0a0a; border-radius:12px; padding:8px; }
+.nm-big { font-size:22px; font-weight:800; margin:2px 0; font-variant-numeric:tabular-nums; }
+.nm-big small { font-size:12px; font-weight:600; }
+.nm-muted { color:#a3a3a3; }
+.nm-sec { margin:12px 0 2px; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:#737373; font-weight:700; }
+.nm-line { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:6px 0; font-size:13px; border-bottom:1px solid #1f1f1f; }
+.nm-amt { font-variant-numeric:tabular-nums; white-space:nowrap; }
+.nm-sum { font-weight:600; border-bottom:0; }
+.nm-strong { border-top:1px solid #404040; margin-top:4px; }
+.nm-net { font-size:16px; font-weight:800; color:#4ade80; border-top:1px solid #404040; margin-top:4px; padding-top:8px; }
+.nm-totals .nm-big { font-size:19px; white-space:nowrap; }
+.nm-totals { display:flex; justify-content:space-between; gap:8px; margin:12px 0 6px; }
+.nm-yhead, .nm-yrow { display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:6px; width:100%; text-align:right; }
+.nm-yhead { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:#737373; padding:6px 8px; }
+.nm-yhead span:first-child, .nm-yrow span:first-child { text-align:left; }
+.nm-yrow { font-size:13px; padding:8px; border-radius:10px; font-variant-numeric:tabular-nums; }
+.nm-yrow:nth-child(odd) { background:rgba(10,10,10,.6); }
+.nm-yrow-on { outline:1px solid #f5f5f5; }
+.nm-future { color:#737373; }
+.nm-yrow em { font-style:normal; font-size:10px; }
+.nm-cfgbtn { font-size:14px; font-weight:600; width:100%; text-align:left; }
+.nm-cfg { margin-top:10px; display:flex; flex-direction:column; gap:8px; }
+.nm-field { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:13px; color:#d4d4d4; }
+.nm-inp { display:flex; align-items:center; gap:4px; }
+.nm-inp input { width:92px; text-align:right; border:0; border-radius:8px; background:#262626; padding:6px 8px; font-size:14px; }
+.nm-inp em { font-style:normal; font-size:11px; color:#737373; width:24px; }
+.nm-reset { margin-top:4px; font-size:12px; color:#fca5a5; border:1px solid rgba(239,68,68,.3); border-radius:10px; padding:7px; }
 </style>
 </head>
 <body>
@@ -483,6 +539,38 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
 // ---- Persistencia ----
 const KEY_TPL = "turnos:plantillas:v2";
 const KEY_ASG = "turnos:asignaciones:v2";
+const KEY_COLORS = "turnos:colores:v1";
+const NEON = "#39ff14";
+// Colores muy oscuros: se pintan sólidos con borde fosforito para verse sobre el fondo negro
+function isDark(hex) {
+  try {
+    const h = hex.replace("#", "");
+    const r = parseInt(h.slice(0, 2), 16),
+      g = parseInt(h.slice(2, 4), 16),
+      b = parseInt(h.slice(4, 6), 16);
+    return 0.299 * r + 0.587 * g + 0.114 * b < 45;
+  } catch (e) {
+    return false;
+  }
+}
+// Aplica una sola vez la nueva paleta a los turnos ya guardados
+function migrateColors(tpls) {
+  try {
+    if (localStorage.getItem(KEY_COLORS)) return tpls;
+    localStorage.setItem(KEY_COLORS, "1");
+  } catch (e) {
+    return tpls;
+  }
+  const NEW = {
+    m: "#3b82f6",
+    t: "#22c55e",
+    n: "#141a14"
+  };
+  return tpls.map(t => NEW[t.id] ? {
+    ...t,
+    color: NEW[t.id]
+  } : t);
+}
 function loadJSON(key, fallback) {
   try {
     const s = localStorage.getItem(key);
@@ -502,7 +590,7 @@ const DEFAULT_TEMPLATES = [{
   name: "Mañana",
   start: "06:45",
   end: "14:45",
-  color: "#facc15",
+  color: "#3b82f6",
   kind: "work"
 }, {
   id: "t",
@@ -516,7 +604,7 @@ const DEFAULT_TEMPLATES = [{
   name: "Noche",
   start: "22:45",
   end: "06:45",
-  color: "#3b82f6",
+  color: "#141a14",
   kind: "work"
 }, {
   id: "d12",
@@ -790,6 +878,537 @@ function buildICS(assignments, templates, fromDate) {
     count
   };
 }
+// ================= NÓMINA =================
+const KEY_NOM = "turnos:nomina:v1";
+const DEFAULT_NOMINA = {
+  base: "1264,10",
+  prorrata: "210,68",
+  convenio: "275,22",
+  rate: "15,47",
+  cc: "4,85",
+  acc: "1,65",
+  vacDefault: "23",
+  vacByYear: {
+    "2026": "18"
+  }
+};
+// Primer día con un turno de trabajo registrado = alta en la empresa
+function firstWorkKey(assignments, byId) {
+  let first = null;
+  for (const k of Object.keys(assignments)) {
+    const t = byId[assignments[k]];
+    if (t && t.kind === "work" && (!first || k < first)) first = k;
+  }
+  return first;
+}
+// ¿La nómina de (y, m) es anterior al mes de alta?
+function beforeStart(y, m, startKey) {
+  if (!startKey) return true;
+  return `${y}-${pad(m + 1)}` < startKey.slice(0, 7);
+}
+function vacEntitlement(settings, year) {
+  const v = settings.vacByYear && settings.vacByYear[String(year)];
+  return toNumFlex(v !== undefined && v !== "" ? v : settings.vacDefault);
+}
+function vacationStats(year, assignments, byId) {
+  const tk = ymd(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+  let used = 0,
+    planned = 0;
+  Object.keys(assignments).forEach(k => {
+    if (!k.startsWith(year + "-")) return;
+    const t = byId[assignments[k]];
+    if (!t || t.kind !== "vacation") return;
+    if (k <= tk) used++;else planned++;
+  });
+  return {
+    used,
+    planned
+  };
+}
+function VacationCard({
+  year,
+  assignments,
+  byId,
+  settings,
+  setSettings
+}) {
+  const [edit, setEdit] = useState(false);
+  const total = vacEntitlement(settings, year);
+  const {
+    used,
+    planned
+  } = vacationStats(year, assignments, byId);
+  const left = total - used - planned;
+  const pct = total > 0 ? Math.min(100, (used + planned) / total * 100) : 0;
+  const pctUsed = total > 0 ? Math.min(100, used / total * 100) : 0;
+  const box = (label, v, color, sub) => ce("div", {
+    className: "nm-hbox"
+  }, ce("div", {
+    className: "nm-sub"
+  }, label), ce("div", {
+    className: "nm-big",
+    style: {
+      color
+    }
+  }, v), ce("div", {
+    className: "nm-sub"
+  }, sub));
+  const val = settings.vacByYear && settings.vacByYear[String(year)] !== undefined ? settings.vacByYear[String(year)] : settings.vacDefault;
+  return ce("div", {
+    className: "nm-card nm-mt"
+  }, ce("div", {
+    className: "nm-row",
+    style: {
+      justifyContent: "space-between"
+    }
+  }, ce("div", {
+    className: "nm-h",
+    style: {
+      margin: 0
+    }
+  }, "🌴 Vacaciones ", year), ce("button", {
+    onClick: () => setEdit(v => !v),
+    className: "nm-sub",
+    style: {
+      textDecoration: "underline"
+    }
+  }, total, " días", edit ? " ▾" : " ✎")), edit && ce("div", {
+    className: "nm-field",
+    style: {
+      marginTop: 8
+    }
+  }, ce("span", null, "Días que te corresponden en ", year), ce("span", {
+    className: "nm-inp"
+  }, ce("input", {
+    type: "text",
+    inputMode: "numeric",
+    value: val,
+    onChange: e => {
+      const v = e.target.value;
+      setSettings(s => ({
+        ...s,
+        vacByYear: {
+          ...(s.vacByYear || {}),
+          [String(year)]: v
+        }
+      }));
+    }
+  }), ce("em", null, "días"))), ce("div", {
+    className: "nm-bar"
+  }, ce("div", {
+    className: "nm-bar-p",
+    style: {
+      width: pct + "%"
+    }
+  }), ce("div", {
+    className: "nm-bar-u",
+    style: {
+      width: pctUsed + "%"
+    }
+  })), ce("div", {
+    className: "nm-hgrid"
+  }, box("Disfrutados", used, "#f472b6", "hasta hoy"), box("Reservados", planned, "#c084fc", "marcados a futuro"), box("Te quedan", left, left < 0 ? "#f87171" : "#4ade80", "por asignar")), left < 0 && ce("p", {
+    className: "nm-warn"
+  }, "⚠︎ Has marcado más días de vacaciones de los que te corresponden este año."));
+}
+const toNum = v => {
+  const n = parseFloat(String(v ?? "").replace(/\./g, "").replace(",", "."));
+  return isFinite(n) ? n : 0;
+};
+// "1264,10" usa coma decimal; si alguien escribe "1264.10" también vale
+const toNumFlex = v => {
+  const s = String(v ?? "").trim();
+  if (s.includes(",")) return toNum(s);
+  const n = parseFloat(s);
+  return isFinite(n) ? n : 0;
+};
+const r2 = x => Math.round((x + Number.EPSILON) * 100) / 100;
+const eur = x => (x < 0 ? "−" : "") + Math.abs(x).toLocaleString("es-ES", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+  useGrouping: true
+}) + " €";
+const numES = x => Number.isInteger(x) ? String(x) : x.toLocaleString("es-ES", {
+  maximumFractionDigits: 2
+});
+
+// Clasifica un turno de trabajo:
+//  - 12 h (≈11 h o más)  -> festivo (todas sus horas)
+//  - turno que cruza medianoche o entra de 20:00 en adelante -> noche (todas sus horas)
+//  - mañana/tarde en sábado o domingo -> fin de semana
+//  - resto -> sin plus
+function classifyShift(t, dateKey) {
+  if (!t || t.kind !== "work" || !t.start || !t.end) return null;
+  const hrs = Math.round(durationHours(t) * 4) / 4; // redondeo a 1/4 h (ignora los 15 min de cambio)
+  if (hrs >= 11) return {
+    type: "holiday",
+    hrs
+  };
+  const crosses = t.end <= t.start;
+  if (crosses || t.start >= "20:00") return {
+    type: "night",
+    hrs
+  };
+  const [Y, M, D] = dateKey.split("-").map(Number);
+  const wd = new Date(Y, M - 1, D).getDay(); // 0 domingo, 6 sábado
+  if (wd === 0 || wd === 6) return {
+    type: "weekend",
+    hrs
+  };
+  return {
+    type: "normal",
+    hrs
+  };
+}
+function extraHoursForMonth(year, month, assignments, byId) {
+  const res = {
+    night: 0,
+    weekend: 0,
+    holiday: 0,
+    nNight: 0,
+    nWeekend: 0,
+    nHoliday: 0,
+    shifts: 0
+  };
+  const dim = new Date(year, month + 1, 0).getDate();
+  for (let d = 1; d <= dim; d++) {
+    const key = ymd(year, month, d);
+    const c = classifyShift(byId[assignments[key]], key);
+    if (!c) continue;
+    res.shifts++;
+    if (c.type === "night") {
+      res.night += c.hrs;
+      res.nNight++;
+    } else if (c.type === "weekend") {
+      res.weekend += c.hrs;
+      res.nWeekend++;
+    } else if (c.type === "holiday") {
+      res.holiday += c.hrs;
+      res.nHoliday++;
+    }
+  }
+  return res;
+}
+
+// Nómina que se cobra a final de (payYear, payMonth). Variables = mes anterior.
+function computePayroll(payYear, payMonth, assignments, byId, s) {
+  const src = new Date(payYear, payMonth - 1, 1);
+  const srcY = src.getFullYear(),
+    srcM = src.getMonth();
+  const h = extraHoursForMonth(srcY, srcM, assignments, byId);
+  const rate = toNumFlex(s.rate);
+  const base = toNumFlex(s.base),
+    prorrata = toNumFlex(s.prorrata),
+    convenio = toNumFlex(s.convenio);
+  const fijo = r2(base + prorrata + convenio);
+  const impNight = r2(h.night * rate),
+    impWeekend = r2(h.weekend * rate),
+    impHoliday = r2(h.holiday * rate);
+  const variable = r2(impNight + impWeekend + impHoliday);
+  const bruto = r2(fijo + variable);
+  const ccPct = toNumFlex(s.cc),
+    accPct = toNumFlex(s.acc);
+  const cc = r2(bruto * ccPct / 100),
+    acc = r2(bruto * accPct / 100);
+  const desc = r2(cc + acc);
+  const neto = r2(bruto - desc);
+  const payDate = new Date(payYear, payMonth + 1, 0);
+  const t0 = new Date();
+  t0.setHours(0, 0, 0, 0);
+  return {
+    srcY,
+    srcM,
+    h,
+    rate,
+    base,
+    prorrata,
+    convenio,
+    fijo,
+    impNight,
+    impWeekend,
+    impHoliday,
+    variable,
+    bruto,
+    ccPct,
+    accPct,
+    cc,
+    acc,
+    desc,
+    neto,
+    payDate,
+    paid: payDate <= t0
+  };
+}
+const ce = React.createElement;
+function TabBar({
+  tab,
+  setTab
+}) {
+  const b = (id, label) => ce("button", {
+    key: id,
+    onClick: () => setTab(id),
+    className: "nm-tab" + (tab === id ? " nm-tab-on" : "")
+  }, label);
+  return ce("div", {
+    className: "nm-tabs"
+  }, b("turnos", "📅 Turnos"), b("nomina", "💶 Nómina"));
+}
+function MonthExtraHours({
+  year,
+  month,
+  assignments,
+  byId
+}) {
+  const h = extraHoursForMonth(year, month, assignments, byId);
+  const next = MESES[(month + 1) % 12];
+  const chip = (label, v, color) => ce("div", {
+    className: "nm-chip"
+  }, ce("span", {
+    className: "nm-dot",
+    style: {
+      background: color
+    }
+  }), ce("span", {
+    className: "nm-chip-l"
+  }, label), ce("b", null, numES(v), " h"));
+  return ce("div", {
+    className: "nm-card nm-mt"
+  }, ce("div", {
+    className: "nm-row nm-gap"
+  }, chip("Noche", h.night, NEON), chip("Finde", h.weekend, "#2dd4bf"), chip("Festivo", h.holiday, "#fb923c")), ce("p", {
+    className: "nm-note"
+  }, "Horas con plus de ", MESES[month].toLowerCase(), ". Se cobran en la nómina de ", next.toLowerCase(), "."));
+}
+function NominaView({
+  assignments,
+  byId,
+  settings,
+  setSettings
+}) {
+  const now = new Date();
+  const [py, setPy] = useState(now.getFullYear());
+  const [pm, setPm] = useState(now.getMonth());
+  const [showCfg, setShowCfg] = useState(false);
+  const p = computePayroll(py, pm, assignments, byId, settings);
+  const startKey = useMemo(() => firstWorkKey(assignments, byId), [assignments, byId]);
+  const off = beforeStart(py, pm, startKey);
+  const startTxt = startKey ? MESES[Number(startKey.slice(5, 7)) - 1].toLowerCase() + " de " + startKey.slice(0, 4) : "";
+  const prev = () => pm === 0 ? (setPm(11), setPy(y => y - 1)) : setPm(m => m - 1);
+  const next = () => pm === 11 ? (setPm(0), setPy(y => y + 1)) : setPm(m => m + 1);
+  const year = useMemo(() => {
+    let acc = 0,
+      paidTotal = 0,
+      forecast = 0;
+    const rows = [];
+    for (let m = 0; m < 12; m++) {
+      if (beforeStart(py, m, startKey)) {
+        rows.push({
+          m,
+          r: null,
+          acc: null
+        });
+        continue;
+      }
+      const r = computePayroll(py, m, assignments, byId, settings);
+      forecast += r.neto;
+      if (r.paid) {
+        paidTotal += r.neto;
+        acc += r.neto;
+      }
+      rows.push({
+        m,
+        r,
+        acc: r.paid ? r2(acc) : null
+      });
+    }
+    return {
+      rows,
+      paidTotal: r2(paidTotal),
+      forecast: r2(forecast)
+    };
+  }, [py, assignments, byId, settings, startKey]);
+  const line = (label, detail, amount, cls) => ce("div", {
+    className: "nm-line " + (cls || "")
+  }, ce("div", null, ce("div", null, label), detail && ce("div", {
+    className: "nm-sub"
+  }, detail)), ce("div", {
+    className: "nm-amt"
+  }, amount));
+  const rate = eur(p.rate);
+  const hrsCard = (label, v, n, color) => ce("div", {
+    className: "nm-hbox"
+  }, ce("div", {
+    className: "nm-row"
+  }, ce("span", {
+    className: "nm-dot",
+    style: {
+      background: color
+    }
+  }), ce("span", {
+    className: "nm-sub"
+  }, label)), ce("div", {
+    className: "nm-big",
+    style: {
+      color
+    }
+  }, numES(v), ce("small", null, " h")), ce("div", {
+    className: "nm-sub"
+  }, n, n === 1 ? " turno" : " turnos"));
+  const payDateTxt = pad(p.payDate.getDate()) + "/" + pad(p.payDate.getMonth() + 1) + "/" + p.payDate.getFullYear();
+  const field = (k, label, suffix) => ce("label", {
+    key: k,
+    className: "nm-field"
+  }, ce("span", null, label), ce("span", {
+    className: "nm-inp"
+  }, ce("input", {
+    type: "text",
+    inputMode: "decimal",
+    value: settings[k],
+    onChange: e => setSettings(s => ({
+      ...s,
+      [k]: e.target.value
+    }))
+  }), ce("em", null, suffix)));
+  return ce("div", null,
+  // --- Selector de mes de cobro
+  ce("div", {
+    className: "nm-card nm-nav nm-mt"
+  }, ce("button", {
+    onClick: prev,
+    className: "nm-navbtn"
+  }, "‹"), ce("div", {
+    className: "nm-center"
+  }, ce("div", {
+    className: "nm-title"
+  }, "Nómina de ", MESES[pm]), ce("div", {
+    className: "nm-sub"
+  }, py, " · ", p.paid ? "cobrada el " : "se cobra el ", payDateTxt)), ce("button", {
+    onClick: next,
+    className: "nm-navbtn"
+  }, "›")),
+  off && ce("div", {
+    className: "nm-card nm-mt nm-center",
+    style: {
+      padding: 20
+    }
+  }, ce("div", {
+    className: "nm-h"
+  }, "Sin nómina este mes"), ce("p", {
+    className: "nm-note"
+  }, startKey ? "Empezaste a trabajar en " + startTxt + " (primer turno registrado). Las nóminas se cuentan desde ese mes." : "Aún no hay turnos registrados. Márcalos en la pestaña Turnos.")),
+  // --- Neto destacado
+  !off && ce("div", {
+    className: "nm-card nm-hero nm-mt"
+  }, ce("div", {
+    className: "nm-sub"
+  }, "Neto a cobrar"), ce("div", {
+    className: "nm-hero-v"
+  }, eur(p.neto)), ce("div", {
+    className: "nm-sub"
+  }, "Bruto ", eur(p.bruto), " · descuentos ", eur(p.desc))),
+  // --- Horas
+  !off && ce("div", {
+    className: "nm-card nm-mt"
+  }, ce("div", {
+    className: "nm-h"
+  }, "Horas con plus de ", MESES[p.srcM].toLowerCase(), " ", p.srcY), ce("p", {
+    className: "nm-note",
+    style: {
+      marginTop: 2
+    }
+  }, "Se pagan a mes vencido: la nómina de ", MESES[pm].toLowerCase(), " paga lo hecho en ", MESES[p.srcM].toLowerCase(), "."), ce("div", {
+    className: "nm-hgrid"
+  }, hrsCard("Noche", p.h.night, p.h.nNight, NEON), hrsCard("Finde", p.h.weekend, p.h.nWeekend, "#2dd4bf"), hrsCard("Festivo", p.h.holiday, p.h.nHoliday, "#fb923c")), p.h.shifts === 0 && !beforeStart(p.srcY, p.srcM, startKey) && ce("p", {
+    className: "nm-warn"
+  }, "⚠︎ No hay turnos registrados en ", MESES[p.srcM].toLowerCase(), ". Si trabajaste ese mes, márcalos en la pestaña Turnos para que el cálculo sea real.")),
+  // --- Desglose
+  !off && ce("div", {
+    className: "nm-card nm-mt"
+  }, ce("div", {
+    className: "nm-h"
+  }, "Desglose"), ce("div", {
+    className: "nm-sec"
+  }, "Fijo"), line("Sueldo base", null, eur(p.base)), line("Prorrateo extras", null, eur(p.prorrata)), line("A cuenta convenio", null, eur(p.convenio)), line("Bruto fijo", null, eur(p.fijo), "nm-sum"), ce("div", {
+    className: "nm-sec"
+  }, "Pluses (", MESES[p.srcM].toLowerCase(), ")"), line("Nocturnidad", numES(p.h.night) + " h × " + rate, eur(p.impNight)), line("Fin de semana", numES(p.h.weekend) + " h × " + rate, eur(p.impWeekend)), line("Festivos", numES(p.h.holiday) + " h × " + rate, eur(p.impHoliday)), line("Bruto noches/findes/festivos", null, eur(p.variable), "nm-sum"), line("Bruto total", null, eur(p.bruto), "nm-sum nm-strong"), ce("div", {
+    className: "nm-sec"
+  }, "Descuentos"), line("Cont. comunes", numES(p.ccPct) + " % de " + eur(p.bruto), "−" + eur(p.cc)), line("Dto. base accidente", numES(p.accPct) + " % de " + eur(p.bruto), "−" + eur(p.acc)), line("Total descuentos", null, "−" + eur(p.desc), "nm-sum"), line("Neto", null, eur(p.neto), "nm-sum nm-net")),
+  // --- Contador anual
+  ce("div", {
+    className: "nm-card nm-mt"
+  }, ce("div", {
+    className: "nm-row",
+    style: {
+      justifyContent: "space-between"
+    }
+  }, ce("button", {
+    onClick: () => setPy(y => y - 1),
+    className: "nm-navbtn nm-sm"
+  }, "‹"), ce("div", {
+    className: "nm-h",
+    style: {
+      margin: 0
+    }
+  }, "Netos ", py), ce("button", {
+    onClick: () => setPy(y => y + 1),
+    className: "nm-navbtn nm-sm"
+  }, "›")), ce("div", {
+    className: "nm-totals"
+  }, ce("div", null, ce("div", {
+    className: "nm-sub"
+  }, "Cobrado en ", py), ce("div", {
+    className: "nm-big",
+    style: {
+      color: "#22c55e"
+    }
+  }, eur(year.paidTotal))), ce("div", {
+    style: {
+      textAlign: "right"
+    }
+  }, ce("div", {
+    className: "nm-sub"
+  }, "Previsión año completo"), ce("div", {
+    className: "nm-big nm-muted"
+  }, eur(year.forecast)))), ce("div", {
+    className: "nm-yhead"
+  }, ce("span", null, "Mes"), ce("span", null, "Neto"), ce("span", null, "Acumulado")), year.rows.map(({
+    m,
+    r,
+    acc
+  }) => !r ? ce("div", {
+    key: m,
+    className: "nm-yrow nm-future"
+  }, ce("span", null, MESES[m]), ce("span", null, "—"), ce("span", null, ce("em", null, "sin alta"))) : ce("button", {
+    key: m,
+    onClick: () => {
+      setPm(m);
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    },
+    className: "nm-yrow" + (m === pm ? " nm-yrow-on" : "") + (r.paid ? "" : " nm-future")
+  }, ce("span", null, MESES[m], !r.paid && ce("em", null, " previsto")), ce("span", null, eur(r.neto)), ce("span", null, acc === null ? "—" : eur(acc)))), ce("p", {
+    className: "nm-note"
+  }, "Cuenta como cobrada cada nómina cuyo último día de mes ya ha pasado. ", startKey ? "Se cuenta desde tu alta (" + startTxt + "). " : "", "Toca un mes para ver su desglose.")),
+  // --- Ajustes
+  ce("div", {
+    className: "nm-card nm-mt"
+  }, ce("button", {
+    onClick: () => setShowCfg(v => !v),
+    className: "nm-cfgbtn"
+  }, showCfg ? "▾" : "▸", " Datos de la nómina"), showCfg && ce("div", {
+    className: "nm-cfg"
+  }, field("base", "Sueldo base", "€"), field("prorrata", "Prorrateo extras", "€"), field("convenio", "A cuenta convenio", "€"), field("rate", "Precio hora noche/finde/festivo", "€/h"), field("cc", "Cont. comunes", "%"), field("acc", "Dto. base accidente", "%"), ce("button", {
+    onClick: () => {
+      if (window.confirm("¿Volver a los importes originales?")) setSettings(DEFAULT_NOMINA);
+    },
+    className: "nm-reset"
+  }, "Restablecer importes"), ce("p", {
+    className: "nm-note"
+  }, "Si cambia tu convenio o el precio de la hora, actualízalo aquí y se recalcula todo."))));
+}
+
 function App() {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -802,13 +1421,19 @@ function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [toast, setToast] = useState("");
   const [imgPreview, setImgPreview] = useState("");
+  const [tab, setTab] = useState("turnos");
+  const [nomina, setNomina] = useState(DEFAULT_NOMINA);
   const [fromDate, setFromDate] = useState(() => {
     const d = new Date();
     return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
   });
   useEffect(() => {
-    setTemplates(loadJSON(KEY_TPL, DEFAULT_TEMPLATES));
+    setTemplates(migrateColors(loadJSON(KEY_TPL, DEFAULT_TEMPLATES)));
     setAssignments(loadJSON(KEY_ASG, {}));
+    setNomina({
+      ...DEFAULT_NOMINA,
+      ...loadJSON(KEY_NOM, {})
+    });
     setLoaded(true);
   }, []);
   useEffect(() => {
@@ -817,6 +1442,9 @@ function App() {
   useEffect(() => {
     if (loaded) saveJSON(KEY_ASG, assignments);
   }, [assignments, loaded]);
+  useEffect(() => {
+    if (loaded) saveJSON(KEY_NOM, nomina);
+  }, [nomina, loaded]);
   const byId = useMemo(() => Object.fromEntries(templates.map(t => [t.id, t])), [templates]);
   const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -855,7 +1483,12 @@ function App() {
       }
     });
     const now = new Date();
-    const start = new Date(year, 0, 1);
+    let start = new Date(year, 0, 1);
+    const fk = firstWorkKey(assignments, byId);
+    if (fk && fk.startsWith(year + "-")) {
+      const [fy, fm, fd] = fk.split("-").map(Number);
+      start = new Date(fy, fm - 1, fd);
+    } else if (fk && fk > `${year}-12-31`) start = new Date(year + 1, 0, 1);
     let end;
     if (year < now.getFullYear()) end = new Date(year, 11, 31);else if (year > now.getFullYear()) end = new Date(year, 0, 0);else end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
@@ -929,6 +1562,7 @@ function App() {
       v: 2,
       templates,
       assignments,
+      nomina,
       savedAt: new Date().toISOString()
     }, null, 2);
     const blob = new Blob([data], {
@@ -954,6 +1588,10 @@ function App() {
         if (data && data.templates && data.assignments) {
           setTemplates(data.templates);
           setAssignments(data.assignments);
+          if (data.nomina) setNomina({
+            ...DEFAULT_NOMINA,
+            ...data.nomina
+          });
           flash("Copia restaurada correctamente.");
         } else flash("El archivo no tiene el formato esperado.");
       } catch (err) {
@@ -1035,7 +1673,7 @@ function App() {
     className: "text-3xl font-extrabold leading-none tracking-tight"
   }, "Mis Turnos"), /*#__PURE__*/React.createElement("p", {
     className: "mt-1 text-sm text-neutral-400"
-  }, "Toca un día para asignar el turno.")), /*#__PURE__*/React.createElement("button", {
+  }, tab === "turnos" ? "Toca un día para asignar el turno." : "Lo que deberías cobrar cada mes.")), /*#__PURE__*/React.createElement("button", {
     onClick: () => setShowHelp(v => !v),
     className: "rounded-full border border-neutral-700 px-3 py-1 text-sm text-neutral-300 active:scale-95"
   }, "?")), showHelp && /*#__PURE__*/React.createElement("div", {
@@ -1048,7 +1686,10 @@ function App() {
     className: "mt-3 font-semibold text-amber-300"
   }, "Aviso 30 min antes (Android)"), /*#__PURE__*/React.createElement("p", {
     className: "mt-1 text-neutral-300"
-  }, "Cada turno lleva un aviso 30 min antes de entrar. Para que suene fuerte: Google Calendar → Ajustes → tu cuenta → activa las notificaciones. Para un despertador de verdad, pon además la alarma del Reloj a esa hora.")), /*#__PURE__*/React.createElement("div", {
+  }, "Cada turno lleva un aviso 30 min antes de entrar. Para que suene fuerte: Google Calendar → Ajustes → tu cuenta → activa las notificaciones. Para un despertador de verdad, pon además la alarma del Reloj a esa hora.")), React.createElement(TabBar, {
+    tab,
+    setTab
+  }), tab === "turnos" && React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "mt-4 grid grid-cols-2 gap-2"
   }, /*#__PURE__*/React.createElement(Stat, {
     label: "Días trabajados",
@@ -1070,11 +1711,17 @@ function App() {
     display: DISPLAY
   }), /*#__PURE__*/React.createElement(Stat, {
     label: "Vacaciones",
-    value: stats.vacDays,
+    value: stats.vacDays + "/" + fmtH(vacEntitlement(nomina, year)),
     accent: "#f472b6",
-    sub: "días marcados",
+    sub: "quedan " + fmtH(vacEntitlement(nomina, year) - stats.vacDays),
     display: DISPLAY
-  })), /*#__PURE__*/React.createElement("div", {
+  })), React.createElement(VacationCard, {
+    year,
+    assignments,
+    byId,
+    settings: nomina,
+    setSettings: setNomina
+  }), /*#__PURE__*/React.createElement("div", {
     className: "mt-5 flex items-center justify-between rounded-2xl border border-neutral-800 bg-neutral-900/60 p-2"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: prevMonth,
@@ -1100,7 +1747,8 @@ function App() {
   }, /*#__PURE__*/React.createElement("span", {
     className: "h-3 w-3 rounded-full",
     style: {
-      background: t.color
+      background: t.color,
+      boxShadow: isDark(t.color) ? "0 0 0 1.5px " + NEON + ", 0 0 6px " + NEON : "none"
     }
   }), t.name)), /*#__PURE__*/React.createElement("button", {
     onClick: () => setShowTpl(v => !v),
@@ -1171,20 +1819,32 @@ function App() {
       key: i,
       onClick: () => tapDay(d),
       className: `relative flex aspect-square flex-col items-center justify-center rounded-xl border text-sm transition active:scale-95 ${isToday ? "border-white" : "border-neutral-800"}`,
-      style: {
+      style: t && isDark(t.color) ? {
+        background: t.color,
+        borderColor: isToday ? "#ffffff" : NEON,
+        boxShadow: "inset 0 0 8px " + NEON + "40"
+      } : {
         background: t ? t.color + "33" : "transparent"
       }
     }, /*#__PURE__*/React.createElement("span", {
-      className: t ? "font-semibold" : "text-neutral-300"
+      className: t ? "font-semibold" : "text-neutral-300",
+      style: t && isDark(t.color) ? {
+        color: NEON
+      } : undefined
     }, d), t && /*#__PURE__*/React.createElement("span", {
       className: "mt-0.5 h-1.5 w-1.5 rounded-full",
       style: {
-        background: t.color
+        background: isDark(t.color) ? NEON : t.color
       }
     }), t && /*#__PURE__*/React.createElement("span", {
       className: "absolute bottom-0.5 text-[8px] leading-none text-neutral-300"
     }, t.name.slice(0, 4)));
-  })), imgPreview && /*#__PURE__*/React.createElement("div", {
+  })), React.createElement(MonthExtraHours, {
+    year,
+    month,
+    assignments,
+    byId
+  }), imgPreview && /*#__PURE__*/React.createElement("div", {
     className: "mt-4 rounded-2xl border border-neutral-800 bg-neutral-900/60 p-3"
   }, /*#__PURE__*/React.createElement("p", {
     className: "text-xs text-neutral-400"
@@ -1211,7 +1871,12 @@ function App() {
     className: "hidden"
   }))), /*#__PURE__*/React.createElement("p", {
     className: "text-[11px] leading-snug text-neutral-500"
-  }, "El despertador abre tu app de alarmas a 30 min antes de entrar (es para el ", /*#__PURE__*/React.createElement("b", null, "próximo"), " turno; hazlo cada día). Guarda una copia de vez en cuando para no perder nunca tus turnos."))), /*#__PURE__*/React.createElement("div", {
+  }, "El despertador abre tu app de alarmas a 30 min antes de entrar (es para el ", /*#__PURE__*/React.createElement("b", null, "próximo"), " turno; hazlo cada día). Guarda una copia de vez en cuando para no perder nunca tus turnos."))), tab === "nomina" && React.createElement(NominaView, {
+    assignments,
+    byId,
+    settings: nomina,
+    setSettings: setNomina
+  })), tab === "turnos" && /*#__PURE__*/React.createElement("div", {
     className: "fixed inset-x-0 bottom-0 mx-auto max-w-md border-t border-neutral-800 bg-neutral-950/95 p-3 backdrop-blur"
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex flex-col gap-2"
